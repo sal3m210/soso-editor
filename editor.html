@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultimate Web Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto&family=Montserrat&family=Lato&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Roboto',sans-serif;}
+body{display:flex;height:100vh;background:#f0f2f5;}
+
+/* Sidebar */
+#sidebar{width:380px;background:#1e202d;color:#fff;padding:12px;overflow-y:auto;}
+h3{margin:12px 0 6px;font-size:15px;}
+button,input,select{width:100%;margin:5px 0;padding:7px;border-radius:6px;border:none;}
+button{background:#2e7dff;color:#fff;cursor:pointer;}
+button.danger{background:#c62828;}
+.panel{background:#141824;padding:8px;border-radius:8px;margin-bottom:10px;}
+
+/* Canvas */
+#canvas{flex:1;background:#fff;position:relative;overflow:hidden;border-left:1px solid #ccc;cursor:default;}
+.grid-line{position:absolute;background:rgba(0,0,0,0.05);}
+.element{position:absolute;cursor:move;}
+.element:not(.selected){outline:1px dashed rgba(0,0,0,.2);}
+.selected{outline:2px solid #2e7dff;}
+.handle{width:10px;height:10px;background:#2e7dff;position:absolute;display:none;}
+.selected .handle{display:block;}
+.br{bottom:-5px;right:-5px;cursor:nwse-resize;}
+.tr{top:-5px;right:-5px;cursor:nesw-resize;}
+.bl{bottom:-5px;left:-5px;cursor:nesw-resize;}
+.tl{top:-5px;left:-5px;cursor:nwse-resize;}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+<h3>Elements</h3>
+<button onclick="add('p')">Paragraph</button>
+<button onclick="add('h1')">H1</button>
+<button onclick="add('h2')">H2</button>
+<button onclick="add('h3')">H3</button>
+<button onclick="addButton()">Button</button>
+<button onclick="addLink()">Link</button>
+<button onclick="addImage()">Image</button>
+<button onclick="add('ul')">List (ul)</button>
+<button onclick="add('li')">List Item (li)</button>
+<button onclick="add('span')">Span</button>
+<button onclick="add('section')">Section</button>
+<button onclick="add('article')">Article</button>
+<button onclick="add('footer')">Footer</button>
+<button onclick="add('header')">Header</button>
+<button onclick="add('nav')">Nav</button>
+
+<div class="panel">
+<h3>Style (Selected)</h3>
+<label>Background</label><input type="color" onchange="css('backgroundColor',this.value)">
+<label>Text Color</label><input type="color" onchange="css('color',this.value)">
+<label>Border Radius</label><input type="range" min="0" max="50" onchange="css('borderRadius',this.value+'px')">
+<label>Opacity</label><input type="range" min="0.1" max="1" step="0.1" onchange="css('opacity',this.value)">
+<label>Font Size</label><input type="range" min="10" max="60" onchange="css('fontSize',this.value+'px')">
+<label>Brightness</label><input type="range" min="0.1" max="2" step="0.1" onchange="css('filter','brightness('+this.value+')')">
+<label>Font Family</label>
+<select onchange="css('fontFamily',this.value)">
+  <option value='Roboto'>Roboto</option>
+  <option value='Montserrat'>Montserrat</option>
+  <option value='Lato'>Lato</option>
+</select>
+</div>
+
+<div id="linkPanel" class="panel" style="display:none">
+<h3>Link Settings</h3>
+<input type="text" placeholder="Text" oninput="editLinkText(this.value)">
+<input type="text" placeholder="URL" oninput="editLinkHref(this.value)">
+<label><input type="checkbox" onchange="editLinkTarget(this.checked)"> Open in new tab</label>
+</div>
+
+<button class="danger" onclick="deleteSelected()">Delete Element</button>
+<button onclick="previewMode()">Preview</button>
+<button onclick="exportHTML()">Export HTML</button>
+</div>
+
+<div id="canvas"></div>
+
+<script>
+let selected=null;
+let isPreview=false;
+const canvas=document.getElementById('canvas');
+
+// --- GRID ---
+function drawGrid(){
+  for(let i=0;i<canvas.offsetWidth;i+=20){
+    let line=document.createElement('div');
+    line.className='grid-line'; line.style.left=i+'px'; line.style.top='0'; line.style.width='1px'; line.style.height='100%';
+    canvas.appendChild(line);
+  }
+  for(let i=0;i<canvas.offsetHeight;i+=20){
+    let line=document.createElement('div');
+    line.className='grid-line'; line.style.top=i+'px'; line.style.left='0'; line.style.height='1px'; line.style.width='100%';
+    canvas.appendChild(line);
+  }
+}
+drawGrid();
+
+// --- ELEMENT CREATION ---
+function baseElement(el){
+  el.style.left='80px'; el.style.top='80px';
+  el.style.width='160px'; el.style.height='50px';
+  el.style.position='absolute';
+  el.onclick=e=>{
+    if(isPreview){return;}
+    e.stopPropagation();
+    select(el);
+  };
+  drag(el); resize(el);
+  canvas.appendChild(el);
+}
+
+function add(tag){
+  const el=document.createElement(tag);
+  el.className='element';
+  el.innerText=tag.toUpperCase();
+  el.contentEditable=true;
+  baseElement(el);
+}
+function addButton(){
+  const b=document.createElement('button');
+  b.className='element'; b.innerText='Button';
+  b.addEventListener('click', e=>{e.preventDefault(); e.stopPropagation(); select(b);});
+  baseElement(b);
+}
+function addLink(){
+  const a=document.createElement('a'); a.className='element'; a.innerText='Click here';
+  a.href='https://example.com';
+  a.style.textDecoration='none';
+  a.style.color='#2e7dff';
+  a.addEventListener('click', e=>{e.preventDefault(); e.stopPropagation(); select(a);});
+  baseElement(a);
+}
+function addImage(){
+  const url=prompt('Image URL'); if(!url) return;
+  const img=document.createElement('img'); img.className='element';
+  img.src=url; img.style.width='180px'; img.style.height='180px';
+  baseElement(img);
+}
+
+// --- SELECT ---
+function select(el){
+  if(selected)selected.classList.remove('selected');
+  selected=el; el.classList.add('selected');
+  document.getElementById('linkPanel').style.display=(el.tagName==='A')?'block':'none';
+}
+function unselect(){if(selected)selected.classList.remove('selected'); selected=null; document.getElementById('linkPanel').style.display='none';}
+canvas.addEventListener('click', unselect);
+
+// --- CSS ---
+function css(prop,value){if(selected)selected.style[prop]=value;}
+
+// --- LINK EDIT ---
+function editLinkText(v){if(selected?.tagName==='A')selected.innerText=v;}
+function editLinkHref(v){if(selected?.tagName==='A')selected.href=v;}
+function editLinkTarget(v){if(selected?.tagName==='A')selected.target=v?'_blank':'_self';}
+
+// --- DELETE ---
+function deleteSelected(){if(selected){selected.remove(); selected=null; document.getElementById('linkPanel').style.display='none';}}
+document.addEventListener('keydown', e=>{if(e.key==='Delete')deleteSelected();});
+
+// --- DRAG ---
+function drag(el){
+  let offsetX,offsetY;
+  el.addEventListener('mousedown', e=>{
+    if(isPreview) return;
+    if(!el.classList.contains('selected')) return;
+    offsetX=e.offsetX; offsetY=e.offsetY;
+    function move(ev){el.style.left=ev.pageX-offsetX+'px'; el.style.top=ev.pageY-offsetY+'px';}
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', ()=>document.removeEventListener('mousemove', move), {once:true});
+  });
+}
+
+// --- RESIZE ---
+function resize(el){
+  ['br','tr','bl','tl'].forEach(c=>{
+    const h=document.createElement('div'); h.className='handle '+c;
+    el.appendChild(h);
+    h.addEventListener('mousedown', e=>{
+      if(isPreview) return;
+      e.stopPropagation();
+      function move(ev){el.style.width=ev.pageX-el.offsetLeft+'px'; el.style.height=ev.pageY-el.offsetTop+'px';}
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', ()=>document.removeEventListener('mousemove', move), {once:true});
+    });
+  });
+}
+
+// --- PREVIEW MODE ---
+function previewMode(){
+  isPreview=!isPreview;
+  alert(isPreview?'Preview ON: الروابط تعمل الآن':'Preview OFF: عدّل على العناصر الآن');
+}
+
+// --- EXPORT (منظم داخل div) ---
+function exportHTML(){
+  let elements = canvas.querySelectorAll('.element');
+  let html = '';
+  elements.forEach(el=>{
+    let tag = el.tagName.toLowerCase();
+    let style = el.getAttribute('style') || '';
+    let content = (tag==='img') ? `<img src="${el.src}" style="${style}">` : `<${tag} style="${style}">${el.innerText}</${tag}>`;
+    html += `<div>${content}</div>\n`;
+  });
+  let code = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Exported Site</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto&family=Montserrat&family=Lato&display=swap" rel="stylesheet">
+</head>
+<body>
+${html}
+</body>
+</html>`;
+  let blob = new Blob([code],{type:'text/html'});
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='website.html'; a.click();
+}
+</script>
+</body>
+</html>

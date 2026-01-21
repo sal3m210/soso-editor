@@ -63,6 +63,19 @@
       margin-bottom: 30px;
     }
 
+    .logo {
+      width: 90px; /* ← عدّل حجم الشعار */
+      margin-bottom: 20px;
+      filter: drop-shadow(0 10px 25px rgba(37,99,235,0.35));
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%   { transform: translateY(0); }
+      50%  { transform: translateY(-6px); }
+      100% { transform: translateY(0); }
+    }
+
     .btn {
       display: inline-block;
       padding: 14px 34px;
@@ -119,6 +132,11 @@
         grid-template-columns: 1fr;
         text-align: center;
       }
+
+      .logo {
+        margin: 0 auto 20px;
+        display: block;
+      }
     }
   </style>
 </head>
@@ -128,6 +146,10 @@
 
     <!-- القسم الرئيسي -->
     <div class="content">
+
+      <!-- 🖼️ ضع مسار شعارك هنا -->
+      <img src="logo.png" alt="Logo" class="logo">
+
       <h1>منصة <span>عصرية</span><br>لبداية مشروعك</h1>
 
       <!-- ✏️ اكتب النبذة هنا -->
@@ -136,11 +158,11 @@
         هذا النص مجرد مثال ويمكنك تغييره بالكامل من داخل الكود.
       </p>
 
-      <!-- 🔗 ضع الرابط هنا -->
+      <!-- 🔗 ضع رابط زر ابدأ هنا -->
       <a href="https://example.com" class="btn">ابدأ الآن</a>
     </div>
 
-    <!-- كرت جانبي -->
+    <!-- الكرت الجانبي -->
     <div class="card">
       <h3>لماذا هذا الموقع؟</h3>
       <p>
@@ -153,3 +175,4 @@
 
 </body>
 </html>
+
